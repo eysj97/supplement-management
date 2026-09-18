@@ -589,6 +589,111 @@ body {
     color: var(--text-muted);
 }
 
+/* 첫 실행 가이드 투어: 실제 화면을 어둡게 덮고 설명할 영역만 밝게 뚫어 보여준 뒤 말풍선으로 안내 */
+.tour-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+}
+.tour-spot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 14px;
+    /* 아주 큰 그림자로 뚫린 영역 바깥 전체를 어둡게 함(넘치는 부분은 .top의 overflow:hidden이 잘라줌) */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62);
+    outline: 2px solid rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+    transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease, border-radius 0.3s ease;
+}
+.tour-bubble {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px 18px 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: left 0.3s ease, top 0.3s ease;
+}
+/* 투어 시작 직후 첫 배치는 애니메이션 없이 곧바로 제자리에 놓음(왼쪽 위에서 미끄러져 들어오지 않게).
+   자리를 잡기 전까지 말풍선은 숨겨둠 */
+.tour-instant .tour-spot,
+.tour-instant .tour-bubble {
+    transition: none;
+}
+.tour-instant .tour-bubble {
+    visibility: hidden;
+}
+
+.tour-arrow {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    transform: translateX(-50%) rotate(45deg);
+}
+.tour-arrow-up {
+    top: -7px;
+}
+.tour-arrow-down {
+    bottom: -7px;
+}
+.tour-mascot {
+    display: block;
+    height: 84px;
+    width: auto;
+    margin: 0 auto 10px;
+    object-fit: contain;
+}
+.tour-mascot[hidden] {
+    display: none;
+}
+.tour-title {
+    font-size: 16px;
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+}
+.tour-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    word-break: keep-all;
+}
+.tour-desc b {
+    color: var(--primary-dark);
+}
+.tour-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+}
+.tour-skip {
+    padding: 6px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.tour-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+.tour-next {
+    padding: 9px 18px;
+    border-radius: 10px;
+    background: var(--primary-dark);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+.tour-next:disabled {
+    opacity: 0.5;
+}
+
 /* 홈 화면: 그래프만 화면에 고정되고(스크롤 안 됨), 오늘의 영양제 + 추천받기는
    그 아래에서 자연스럽게 스크롤됨 */
 .panel-home{
@@ -891,6 +996,19 @@ body {
     border: 1px solid var(--primary);
     background: none;
     color: var(--primary);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.guide-row {
+    padding: 0 4px 24px;
+}
+.guide-row button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
     font-size: 13px;
     font-weight: 700;
 }
@@ -1965,4 +2083,10 @@ label.menu {
     .nutrient-info-sheet h3 { font-size: calc(17px + 2px); }
     .nutrient-info-sheet p { font-size: calc(13px + 2px); }
     .nutrient-info-sheet button { font-size: calc(14px + 2px); }
+    .tour-title { font-size: calc(16px + 2px); }
+    .tour-desc { font-size: calc(13px + 2px); }
+    .tour-skip { font-size: calc(13px + 2px); }
+    .tour-count { font-size: calc(12px + 2px); }
+    .tour-next { font-size: calc(13px + 2px); }
+    .guide-row button { font-size: calc(13px + 2px); }
 }

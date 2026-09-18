@@ -550,6 +550,327 @@
         });
     }
 
+    // ---------- 첫 실행 가이드 투어: 실제 앱 화면을 하나씩 짚어가며 말풍선으로 설명 ----------
+    // 처음 접속했을 때 한 번만 자동으로 시작되고, 이후에는 건강상태 탭의 "앱 사용 방법 다시 보기"로
+    // 다시 볼 수 있음. 알림 허용 팝업과 겹치지 않도록, 자동으로 시작된 경우엔 투어가 끝난 뒤에
+    // 그 팝업을 이어서 띄움
+    const ONBOARDING_DONE_KEY = "gwangja_tour_done_v1";
+
+    // target이 없으면 화면 전체를 어둡게 하고 가운데에 말풍선만 보여줌(인사 단계).
+    // target이 여러 개면(배열) 그 요소들을 모두 감싸는 하나의 영역을 강조함.
+    // tab: 이 단계에서 보여줄 탭 / fab: 가운데 + 버튼 메뉴를 펼친 채로 보여줄지 여부
+    const TOUR_STEPS = [
+        {
+            tab: "home",
+            mascot: "images/logo-waiting1.png",
+            title: "건광자 사용법을 알려드릴게요",
+            desc: "실제 화면을 하나씩 짚어가며 설명해 드려요.<br>금방 끝나요!",
+        },
+        {
+            tab: "home",
+            target: ".panel-home .boxGrap",
+            title: "오늘 챙긴 영양소",
+            desc: "먹은 영양제의 영양소가 권장량의 몇 %인지 막대로 보여줘요.<br>막대를 누르면 영양소 설명도 볼 수 있어요.",
+        },
+        {
+            tab: "home",
+            target: ".today",
+            title: "오늘의 영양제",
+            desc: "오늘 먹을 영양제가 여기에 모여요. 먹고 나면 <b>✓</b>를 눌러 기록하세요.<br>직접 추가한 항목은 꾹 눌러서 뺄 수 있어요.",
+        },
+        {
+            tab: "home",
+            target: ".tryBox",
+            title: "추천 받기",
+            desc: "지금 상태(피로, 감기, 불면 등)를 누르면 도움이 될 영양소가 든 <b>내 영양제</b>를 찾아줘요.<br>+ 버튼으로 오늘의 영양제에 바로 담을 수 있어요.",
+        },
+        {
+            tab: "home",
+            fab: true,
+            target: ["#nav-fab-btn", "#nav-fab-scan", "#nav-fab-search"],
+            round: true,
+            title: "＋ 버튼으로 추가하기",
+            desc: "누르면 두 가지가 펼쳐져요.<br><b>스캔</b> — 제품·성분표 사진을 찍어 영양제 등록<br><b>돋보기</b> — 등록한 영양제 중 오늘 먹을 것 추가",
+        },
+        {
+            tab: "medicines",
+            target: ".panel-medicines .medicine-tile",
+            title: "내 영양제",
+            desc: "등록한 영양제가 여기에 모여요.<br>누르면 성분 함량, 복용 방법, 재고를 볼 수 있어요.",
+        },
+        {
+            tab: "nutrition",
+            target: ".panel-nutrition .card",
+            title: "주간 영양 현황",
+            desc: "복용 체크한 기록을 바탕으로<br>이번 주에 챙긴 영양소를 캡슐 그래프로 보여줘요.",
+        },
+        {
+            tab: "nutrition",
+            target: [".nutri-rate-title", "#nutri-ring-grid"],
+            title: "한 달 영양소 복용 비율",
+            desc: "영양소별로 이번 달 필요량 중 얼마나 채웠는지 링으로 보여줘요. 위의 %는 전체 평균이에요.<br>100%를 넘으면 <b>과대섭취</b>, 50%보다 낮으면 <b>섭취부족</b>으로 아래에 따로 알려드려요.",
+        },
+        {
+            tab: "nutrition",
+            target: [".push-toggle-row > span", "#push-toggle"],
+            title: "복용 알림",
+            desc: "켜 두면 앱을 닫아도<br>잠금화면으로 복용 알림을 보내드려요.",
+        },
+        {
+            tab: "nutrition",
+            target: [".sync-row-title", ".sync-row-actions"],
+            title: "다른 기기와 동기화",
+            desc: "기기를 바꾸거나 다른 기기에서도 쓰고 싶을 때 사용해요.<br>① 원래 쓰던 기기에서 <b>코드 만들기</b> → 6자리 코드 발급 (10분간 유효)<br>② 새 기기에서 <b>코드 입력하기</b> → 코드 입력<br>사진은 옮겨지지 않고, 새 기기의 영양제 목록·오늘 기록은 가져온 데이터로 바뀌어요.",
+        },
+        {
+            tab: "shop",
+            target: ".store-header",
+            title: "스토어",
+            desc: "다이소에서 파는 영양제를 둘러볼 수 있어요.<br>상품을 누르면 다이소몰로 연결돼요.",
+        },
+    ];
+
+    const TOUR_TABS = ["home", "medicines", "nutrition", "shop"];
+
+    function tourSwitchTab(name) {
+        const radio = document.getElementById("menu-" + name);
+        if (radio && !radio.checked) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    function openOnboarding(onClose) {
+        const host = document.querySelector(".top") || document.body;
+        const existing = host.querySelector(".tour-overlay");
+        if (existing) existing.remove();
+
+        const fabWrap = document.getElementById("nav-fab-wrap");
+        const viewEl = document.querySelector(".view");
+        const homeScrollEl = document.querySelector(".home-scroll");
+        const startTab = TOUR_TABS.find((t) => {
+            const r = document.getElementById("menu-" + t);
+            return r && r.checked;
+        }) || "home";
+        const savedScroll = { view: viewEl ? viewEl.scrollTop : 0, home: homeScrollEl ? homeScrollEl.scrollTop : 0 };
+
+        const overlay = document.createElement("div");
+        overlay.className = "tour-overlay tour-instant";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", "앱 사용 방법");
+        overlay.innerHTML = `
+            <div class="tour-spot"></div>
+            <div class="tour-bubble">
+                <span class="tour-arrow"></span>
+                <img class="tour-mascot" alt="" hidden>
+                <h3 class="tour-title"></h3>
+                <p class="tour-desc"></p>
+                <div class="tour-footer">
+                    <button type="button" class="tour-skip">건너뛰기</button>
+                    <span class="tour-count"></span>
+                    <button type="button" class="tour-next">다음</button>
+                </div>
+            </div>
+        `;
+        host.appendChild(overlay);
+
+        const spot = overlay.querySelector(".tour-spot");
+        const bubble = overlay.querySelector(".tour-bubble");
+        const arrow = overlay.querySelector(".tour-arrow");
+        const mascotEl = overlay.querySelector(".tour-mascot");
+        const titleEl = overlay.querySelector(".tour-title");
+        const descEl = overlay.querySelector(".tour-desc");
+        const countEl = overlay.querySelector(".tour-count");
+        const skipBtn = overlay.querySelector(".tour-skip");
+        const nextBtn = overlay.querySelector(".tour-next");
+
+        const lastIndex = TOUR_STEPS.length - 1;
+        const MARGIN = 16;
+        let index = 0;
+        let token = 0; // 단계가 빠르게 바뀔 때 늦게 끝난 이전 단계의 배치가 덮어쓰지 않게 함
+        let closed = false;
+
+        // .top은 화면에 맞춰 transform: scale로 축소/확대돼 있어서, getBoundingClientRect() 값은
+        // 화면(축소된) 좌표이고 overlay의 left/top은 축소 전 좌표임. 그 비율로 환산해줌
+        function toLocalRect(rect) {
+            const hostRect = host.getBoundingClientRect();
+            const scale = hostRect.width / host.offsetWidth || 1;
+            return {
+                left: (rect.left - hostRect.left) / scale,
+                top: (rect.top - hostRect.top) / scale,
+                width: rect.width / scale,
+                height: rect.height / scale,
+                scale,
+            };
+        }
+
+        // 대상이 스크롤 영역(홈 하단 목록 / 각 탭 본문) 안에서 가려져 있으면 그 스크롤만 움직여 보이게 함.
+        // scrollIntoView는 overflow:hidden인 .top까지 밀어버릴 수 있어서 쓰지 않음
+        function ensureVisible(el) {
+            const container = el.closest(".home-scroll, .view");
+            if (!container) return;
+            const scale = host.getBoundingClientRect().width / host.offsetWidth || 1;
+            const c = container.getBoundingClientRect();
+            const r = el.getBoundingClientRect();
+            // 하단 60~100px은 떠 있는 네비가 가리는 영역이라 그만큼은 보이는 영역에서 뺌
+            const navSafe = 100 * scale;
+            const topEdge = c.top + 8 * scale;
+            const bottomEdge = c.bottom - navSafe;
+            if (r.top >= topEdge && r.bottom <= bottomEdge) return;
+            container.scrollTop += (r.top - (c.top + 24 * scale)) / scale;
+        }
+
+        function unionRect(els) {
+            let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+            els.forEach((el) => {
+                const r = el.getBoundingClientRect();
+                left = Math.min(left, r.left);
+                top = Math.min(top, r.top);
+                right = Math.max(right, r.right);
+                bottom = Math.max(bottom, r.bottom);
+            });
+            return { left, top, width: right - left, height: bottom - top };
+        }
+
+        function layout(step, els) {
+            const W = host.offsetWidth;
+            const H = host.offsetHeight;
+
+            bubble.style.width = Math.min(300, W - MARGIN * 2) + "px";
+            const bw = bubble.offsetWidth;
+            const bh = bubble.offsetHeight;
+
+            if (!els) {
+                spot.style.left = W / 2 + "px";
+                spot.style.top = H / 2 + "px";
+                spot.style.width = "0px";
+                spot.style.height = "0px";
+                bubble.style.left = (W - bw) / 2 + "px";
+                bubble.style.top = (H - bh) / 2 + "px";
+                arrow.style.display = "none";
+                return;
+            }
+
+            const PAD = 6;
+            const t = toLocalRect(unionRect(els));
+            const box = { left: t.left - PAD, top: t.top - PAD, width: t.width + PAD * 2, height: t.height + PAD * 2 };
+            spot.style.left = box.left + "px";
+            spot.style.top = box.top + "px";
+            spot.style.width = box.width + "px";
+            spot.style.height = box.height + "px";
+            spot.style.borderRadius = step.round ? "32px" : "14px";
+
+            // 대상 아래에 자리가 있으면 아래에, 아니면 위에, 둘 다 좁으면 더 넓은 쪽에 놓음
+            const GAP = 14;
+            const belowTop = box.top + box.height + GAP;
+            const aboveTop = box.top - GAP - bh;
+            let placeBelow;
+            if (belowTop + bh <= H - MARGIN) placeBelow = true;
+            else if (aboveTop >= MARGIN) placeBelow = false;
+            else placeBelow = H - (box.top + box.height) >= box.top;
+            const top = Math.max(MARGIN, Math.min(placeBelow ? belowTop : aboveTop, H - bh - MARGIN));
+
+            const centerX = box.left + box.width / 2;
+            const left = Math.max(MARGIN, Math.min(centerX - bw / 2, W - bw - MARGIN));
+            bubble.style.left = left + "px";
+            bubble.style.top = top + "px";
+
+            arrow.style.display = "block";
+            arrow.style.left = Math.max(22, Math.min(centerX - left, bw - 22)) + "px";
+            arrow.classList.toggle("tour-arrow-up", placeBelow); // 말풍선이 아래일 땐 화살표가 위쪽 가장자리에
+            arrow.classList.toggle("tour-arrow-down", !placeBelow);
+        }
+
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        async function showStep(i) {
+            const myToken = ++token;
+            index = i;
+            const step = TOUR_STEPS[i];
+
+            nextBtn.disabled = true;
+            if (step.tab) tourSwitchTab(step.tab);
+            if (fabWrap) fabWrap.classList.toggle("open", !!step.fab);
+
+            let els = null;
+            if (step.target) {
+                els = [].concat(step.target).map((sel) => document.querySelector(sel)).filter(Boolean);
+                // 대상이 없거나 화면에 안 그려져 있으면(예: 데이터가 없는 경우) 그 단계는 건너뜀
+                if (!els.length || els.some((el) => el.offsetParent === null && !el.getClientRects().length)) {
+                    if (i < lastIndex) return showStep(i + 1);
+                    return close();
+                }
+                if (!step.fab) ensureVisible(els[0]);
+            }
+
+            titleEl.textContent = step.title;
+            descEl.innerHTML = step.desc;
+            mascotEl.hidden = !step.mascot;
+            if (step.mascot) mascotEl.src = step.mascot;
+            countEl.textContent = `${i + 1} / ${TOUR_STEPS.length}`;
+            nextBtn.textContent = i === lastIndex ? "시작하기" : "다음";
+            skipBtn.style.visibility = i === lastIndex ? "hidden" : "visible";
+
+            // 탭 전환/+ 메뉴 펼침 애니메이션이 끝나 최종 위치가 잡힌 뒤에 재야 정확함
+            await wait(step.fab ? 300 : 80);
+            if (closed || myToken !== token) return;
+
+            layout(step, els);
+            if (overlay.classList.contains("tour-instant")) {
+                void overlay.offsetWidth; // 애니메이션 없이 위치가 먼저 확정되도록 강제로 반영한 뒤 켬
+                overlay.classList.remove("tour-instant");
+            }
+            nextBtn.disabled = false;
+        }
+
+        function close() {
+            if (closed) return;
+            closed = true;
+            token += 1;
+            window.removeEventListener("resize", onResize);
+            localStorage.setItem(ONBOARDING_DONE_KEY, "1");
+            if (fabWrap) fabWrap.classList.remove("open");
+            overlay.remove();
+            tourSwitchTab(startTab);
+            if (viewEl) viewEl.scrollTop = savedScroll.view;
+            if (homeScrollEl) homeScrollEl.scrollTop = savedScroll.home;
+            if (onClose) onClose();
+        }
+
+        function onResize() {
+            if (!closed) showStep(index);
+        }
+        window.addEventListener("resize", onResize);
+
+        // 앱에는 "+ 메뉴 바깥을 누르면 접기" 클릭 핸들러가 document에 걸려 있어서, 투어 버튼 클릭이
+        // 밖으로 전파되면 방금 펼친 + 메뉴가 곧바로 접혀버림
+        overlay.addEventListener("click", (e) => e.stopPropagation());
+
+        skipBtn.addEventListener("click", close);
+        nextBtn.addEventListener("click", () => {
+            if (index >= lastIndex) close();
+            else showStep(index + 1);
+        });
+
+        showStep(0);
+    }
+
+    function maybeShowOnboarding() {
+        // 주소 뒤에 ?tour 를 붙이면(예: index.html?tour) 이미 본 기기에서도 투어를 다시 시작함
+        const forced = new URLSearchParams(window.location.search).has("tour");
+        if (!forced && localStorage.getItem(ONBOARDING_DONE_KEY)) {
+            maybeShowPushPermissionModal();
+            return;
+        }
+        openOnboarding(maybeShowPushPermissionModal);
+    }
+
+    function wireOnboardingReplay() {
+        const btn = document.getElementById("onboarding-replay-btn");
+        if (btn) btn.addEventListener("click", () => openOnboarding());
+    }
+
     // 서버에 예약해둔 QStash 스케줄과 구독 정보를 모두 지워서 알림을 완전히 끔
     async function disableGeneralServerPushReminders() {
         localStorage.removeItem(PUSH_SCHEDULED_KEY);
@@ -2082,12 +2403,13 @@
         checkReminders();
         setInterval(checkReminders, 30000);
 
-        maybeShowPushPermissionModal();
+        maybeShowOnboarding();
         if ("Notification" in window && Notification.permission === "granted" && !localStorage.getItem(PUSH_SCHEDULED_KEY)) {
             setupGeneralServerPushReminders();
         }
         wirePushToggle();
         wireSyncButtons();
+        wireOnboardingReplay();
 
         updateScreenBackdrop();
         requestAnimationFrame(updateScreenBackdrop);
