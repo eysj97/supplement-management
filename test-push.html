@@ -13,7 +13,7 @@
         dl { display: grid; grid-template-columns: 110px 1fr; gap: 8px 12px; margin: 0 0 20px; font-size: 14px; }
         dt { color: #777; }
         dd { margin: 0; word-break: break-all; }
-        button { width: 100%; padding: 14px; font-size: 16px; font-weight: 700; color: #fff; background: #498058; border: 0; border-radius: 12px; }
+        button { width: 100%; padding: 14px; font-size: 16px; font-weight: 700; color: #fff; background: #498058; border: 0; border-radius: 12px; margin-bottom: 10px; }
         button:disabled { background: #A9A9A9; }
         pre { margin-top: 16px; padding: 12px; background: #EFEFEF; border-radius: 8px; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
         .hint { margin-top: 20px; font-size: 13px; color: #777; line-height: 1.6; }
@@ -21,7 +21,7 @@
 </head>
 <body>
     <h1>알림 테스트</h1>
-    <p class="sub">이 기기로 서버 푸시 알림을 지금 바로 한 번 보내 봅니다.</p>
+    <p class="sub">1번으로 이 기기를 등록하고, 2번으로 알림을 지금 바로 한 번 보내 봅니다.</p>
 
     <dl>
         <dt>사용자 ID</dt><dd id="uid">-</dd>
@@ -29,27 +29,64 @@
         <dt>푸시 구독</dt><dd id="sub">-</dd>
     </dl>
 
-    <button id="send" type="button">테스트 알림 보내기</button>
+    <button id="register" type="button">1. 이 기기 알림 등록하기</button>
+    <button id="send" type="button">2. 테스트 알림 보내기</button>
     <pre id="out" hidden></pre>
 
     <div class="hint">
-        사용자 ID가 "-"이거나 푸시 구독이 "없음"이면, 먼저 메인 화면(<a href="/index.html">index.html</a>)에서 알림 허용을 누른 뒤 다시 열어 주세요.
-        알림이 안 오면 위 결과 창의 오류 문구를 알려주세요.
+        진행 결과가 위 회색 상자에 한 줄씩 나옵니다. 오류가 나면 그 내용을 그대로 알려주세요.
+        (iPhone은 사파리에서 "홈 화면에 추가"한 앱에서만 알림이 옵니다.)
     </div>
 
     <script>
+        // header.js의 VAPID_PUBLIC_KEY와 같은 값이어야 함
+        const VAPID_PUBLIC_KEY = "BAgdgYIaumwswYV92cBWCkR4hM7zTYvLbojqCdD0l96fEddgDbzHvtHstW5ZW4KezW3zpx-ToAvAYs5N723xRkU";
+        const PUSH_USER_ID_KEY = "geongangja_push_user_id";
+        const PUSH_SCHEDULED_KEY = "geongangja_general_push_scheduled_v1";
+        const PUSH_ASKED_KEY = "geongangja_push_asked_v1";
+        const TIMES = [
+            { hour: 11, minute: 0, groupIndex: 0 },
+            { hour: 14, minute: 0, groupIndex: 1 },
+            { hour: 2, minute: 0, groupIndex: 2 },
+        ];
+
         const uidEl = document.getElementById("uid");
         const permEl = document.getElementById("perm");
         const subEl = document.getElementById("sub");
         const out = document.getElementById("out");
-        const btn = document.getElementById("send");
+        const regBtn = document.getElementById("register");
+        const sendBtn = document.getElementById("send");
 
-        let userId = "";
-        try { userId = localStorage.getItem("geongangja_push_user_id") || ""; } catch (e) {}
-        uidEl.textContent = userId || "-";
-        permEl.textContent = "Notification" in window ? Notification.permission : "지원 안 함";
+        function log(msg) {
+            out.hidden = false;
+            out.textContent += (out.textContent ? "\n" : "") + msg;
+        }
+        function getUserId() {
+            try { return localStorage.getItem(PUSH_USER_ID_KEY) || ""; } catch (e) { return ""; }
+        }
+        function getOrCreateUserId() {
+            let id = getUserId();
+            if (!id) {
+                id = "u_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem(PUSH_USER_ID_KEY, id);
+            }
+            return id;
+        }
+        function urlBase64ToUint8Array(base64String) {
+            const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+            const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+            const raw = atob(base64);
+            return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+        }
+        async function post(url, body) {
+            const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+            const text = await res.text();
+            return { ok: res.ok, status: res.status, text };
+        }
 
-        (async () => {
+        async function refreshStatus() {
+            uidEl.textContent = getUserId() || "-";
+            permEl.textContent = "Notification" in window ? Notification.permission : "지원 안 함";
             try {
                 const reg = await navigator.serviceWorker.getRegistration();
                 const sub = reg ? await reg.pushManager.getSubscription() : null;
@@ -57,24 +94,87 @@
             } catch (e) {
                 subEl.textContent = "확인 실패";
             }
-        })();
+        }
+        refreshStatus();
 
-        btn.addEventListener("click", async () => {
-            btn.disabled = true;
-            out.hidden = false;
-            out.textContent = "보내는 중...";
+        regBtn.addEventListener("click", async () => {
+            regBtn.disabled = true;
+            out.textContent = "";
             try {
-                const res = await fetch("/api/send-push", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId, groupIndex: 0 }),
-                });
-                const text = await res.text();
-                out.textContent = "HTTP " + res.status + "\n" + text;
+                if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+                    log("이 브라우저는 푸시 알림을 지원하지 않아요.");
+                    return;
+                }
+                log("① 알림 허용 요청...");
+                const permission = await Notification.requestPermission();
+                log("   결과: " + permission);
+                if (permission !== "granted") {
+                    log("알림이 허용되지 않았어요. 주소창 왼쪽 자물쇠 → 사이트 설정에서 알림을 허용으로 바꾼 뒤 다시 눌러 주세요.");
+                    return;
+                }
+
+                log("② 서비스워커 준비...");
+                await navigator.serviceWorker.register("service-worker.js");
+                const reg = await navigator.serviceWorker.ready;
+
+                log("③ 푸시 구독 만들기...");
+                const serverKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+                let sub = await reg.pushManager.getSubscription();
+                if (sub && sub.options && sub.options.applicationServerKey) {
+                    const saved = new Uint8Array(sub.options.applicationServerKey);
+                    const same = saved.length === serverKey.length && saved.every((b, i) => b === serverKey[i]);
+                    if (!same) {
+                        log("   예전 키로 만든 구독을 지우고 새로 만들어요.");
+                        await sub.unsubscribe();
+                        sub = null;
+                    }
+                }
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: serverKey });
+                }
+                log("   구독 완료");
+
+                const userId = getOrCreateUserId();
+
+                log("④ 서버에 구독 저장 (/api/subscribe)...");
+                const r1 = await post("/api/subscribe", { userId, subscription: sub });
+                log("   HTTP " + r1.status + " " + r1.text);
+                if (!r1.ok) return;
+
+                log("⑤ 정해진 시각 알림 예약 (/api/schedule-general-reminders)...");
+                const r2 = await post("/api/schedule-general-reminders", { userId, times: TIMES });
+                log("   HTTP " + r2.status + " " + r2.text);
+                if (!r2.ok) return;
+
+                localStorage.setItem(PUSH_SCHEDULED_KEY, "1");
+                localStorage.setItem(PUSH_ASKED_KEY, "1");
+                log("✅ 등록 완료! 이제 2번 버튼을 눌러 보세요.");
             } catch (e) {
-                out.textContent = "요청 실패: " + e;
+                log("❌ 오류: " + (e && e.message ? e.message : e));
+            } finally {
+                regBtn.disabled = false;
+                refreshStatus();
             }
-            btn.disabled = false;
+        });
+
+        sendBtn.addEventListener("click", async () => {
+            sendBtn.disabled = true;
+            out.textContent = "";
+            try {
+                const userId = getUserId();
+                if (!userId) {
+                    log("먼저 1번 버튼으로 이 기기를 등록해 주세요.");
+                    return;
+                }
+                log("알림 보내는 중 (/api/send-push)...");
+                const r = await post("/api/send-push", { userId, groupIndex: 0 });
+                log("HTTP " + r.status + " " + r.text);
+                if (r.ok) log("잠시 뒤 알림이 뜨는지 확인해 주세요.");
+            } catch (e) {
+                log("요청 실패: " + e);
+            } finally {
+                sendBtn.disabled = false;
+            }
         });
     </script>
 </body>

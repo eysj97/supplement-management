@@ -484,11 +484,21 @@
             if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
             const registration = await navigator.serviceWorker.ready;
 
+            const serverKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
             let subscription = await registration.pushManager.getSubscription();
+            // 예전에 다른 서버 키로 만든 구독이 남아 있으면 지금 서버 키로는 알림이 거부되므로 지우고 새로 만듦
+            if (subscription && subscription.options && subscription.options.applicationServerKey) {
+                const saved = new Uint8Array(subscription.options.applicationServerKey);
+                const same = saved.length === serverKey.length && saved.every((b, i) => b === serverKey[i]);
+                if (!same) {
+                    await subscription.unsubscribe();
+                    subscription = null;
+                }
+            }
             if (!subscription) {
                 subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+                    applicationServerKey: serverKey,
                 });
             }
 
