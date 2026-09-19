@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>알림 테스트</title>
+    <style>
+        body { font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif; max-width: 480px; margin: 0 auto; padding: 24px 16px; color: #303030; }
+        h1 { font-size: 20px; margin: 0 0 4px; color: #053D20; }
+        p.sub { margin: 0 0 20px; color: #777; font-size: 13px; }
+        dl { display: grid; grid-template-columns: 110px 1fr; gap: 8px 12px; margin: 0 0 20px; font-size: 14px; }
+        dt { color: #777; }
+        dd { margin: 0; word-break: break-all; }
+        button { width: 100%; padding: 14px; font-size: 16px; font-weight: 700; color: #fff; background: #498058; border: 0; border-radius: 12px; }
+        button:disabled { background: #A9A9A9; }
+        pre { margin-top: 16px; padding: 12px; background: #EFEFEF; border-radius: 8px; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
+        .hint { margin-top: 20px; font-size: 13px; color: #777; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <h1>알림 테스트</h1>
+    <p class="sub">이 기기로 서버 푸시 알림을 지금 바로 한 번 보내 봅니다.</p>
+
+    <dl>
+        <dt>사용자 ID</dt><dd id="uid">-</dd>
+        <dt>알림 허용</dt><dd id="perm">-</dd>
+        <dt>푸시 구독</dt><dd id="sub">-</dd>
+    </dl>
+
+    <button id="send" type="button">테스트 알림 보내기</button>
+    <pre id="out" hidden></pre>
+
+    <div class="hint">
+        사용자 ID가 "-"이거나 푸시 구독이 "없음"이면, 먼저 메인 화면(<a href="/index.html">index.html</a>)에서 알림 허용을 누른 뒤 다시 열어 주세요.
+        알림이 안 오면 위 결과 창의 오류 문구를 알려주세요.
+    </div>
+
+    <script>
+        const uidEl = document.getElementById("uid");
+        const permEl = document.getElementById("perm");
+        const subEl = document.getElementById("sub");
+        const out = document.getElementById("out");
+        const btn = document.getElementById("send");
+
+        let userId = "";
+        try { userId = localStorage.getItem("geongangja_push_user_id") || ""; } catch (e) {}
+        uidEl.textContent = userId || "-";
+        permEl.textContent = "Notification" in window ? Notification.permission : "지원 안 함";
+
+        (async () => {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration();
+                const sub = reg ? await reg.pushManager.getSubscription() : null;
+                subEl.textContent = sub ? "있음" : "없음";
+            } catch (e) {
+                subEl.textContent = "확인 실패";
+            }
+        })();
+
+        btn.addEventListener("click", async () => {
+            btn.disabled = true;
+            out.hidden = false;
+            out.textContent = "보내는 중...";
+            try {
+                const res = await fetch("/api/send-push", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId, groupIndex: 0 }),
+                });
+                const text = await res.text();
+                out.textContent = "HTTP " + res.status + "\n" + text;
+            } catch (e) {
+                out.textContent = "요청 실패: " + e;
+            }
+            btn.disabled = false;
+        });
+    </script>
+</body>
+</html>
