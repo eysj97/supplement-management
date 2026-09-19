@@ -2,7 +2,7 @@
 // 구독 정보도 삭제해서, 혹시 스케줄이 남아있어도 더 이상 알림이 가지 않게 함.
 const { redisGet, redisDel, qstashRequest } = require("./_lib");
 
-const GENERAL_REMINDER_SLOTS = 3; // 11시/14시/새벽2시
+const GENERAL_REMINDER_SLOTS = 3; // 7시 30분/13시/20시
 
 module.exports = async (req, res) => {
     if (req.method !== "POST") {

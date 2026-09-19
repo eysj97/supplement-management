@@ -408,9 +408,9 @@
     // 브라우저 알림(Notification) 기능을 사용하며, 이 탭이 열려 있을 때만 동작함.
     // OS 설정에 따라 잠금화면에도 표시될 수 있지만, 탭이 닫혀 있으면 절대 뜨지 않음.
     const REMINDER_TIMES = [
-        { hour: 11, minute: 0, groupIndex: 0, files: WAITING_IMAGE_GROUPS[0].files },
-        { hour: 14, minute: 0, groupIndex: 1, files: WAITING_IMAGE_GROUPS[1].files },
-        { hour: 2, minute: 0, groupIndex: 2, files: WAITING_IMAGE_GROUPS[2].files },
+        { hour: 7, minute: 30, groupIndex: 0, files: WAITING_IMAGE_GROUPS[0].files },
+        { hour: 13, minute: 0, groupIndex: 1, files: WAITING_IMAGE_GROUPS[1].files },
+        { hour: 20, minute: 0, groupIndex: 2, files: WAITING_IMAGE_GROUPS[2].files },
     ];
     const REMINDER_FIRED_KEY_PREFIX = "pt_reminder_fired_";
 
@@ -455,11 +455,11 @@
     }
 
     // ---------- 서버 푸시 알림: 앱이 완전히 꺼져 있어도, 잠금화면이나 다른 앱을 쓰는 중에도
-    // 정해진 시각(11시/14시/새벽2시)에 팝업이 뜨게 함. /api/subscribe + /api/schedule-general-reminders
+    // 정해진 시각(7시 30분/13시/20시)에 팝업이 뜨게 함. /api/subscribe + /api/schedule-general-reminders
     // (QStash 예약) + /api/send-push가 필요하며, 서버 쪽 환경변수가 아직 없으면 조용히 실패함 ----------
     const VAPID_PUBLIC_KEY = "BAgdgYIaumwswYV92cBWCkR4hM7zTYvLbojqCdD0l96fEddgDbzHvtHstW5ZW4KezW3zpx-ToAvAYs5N723xRkU";
     const PUSH_USER_ID_KEY = "geongangja_push_user_id";
-    const PUSH_SCHEDULED_KEY = "geongangja_general_push_scheduled_v1";
+    const PUSH_SCHEDULED_KEY = "geongangja_general_push_scheduled_v2";
 
     function getOrCreatePushUserId() {
         let id = localStorage.getItem(PUSH_USER_ID_KEY);
