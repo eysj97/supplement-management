@@ -1,8 +1,8 @@
 {
-  "name": "geongwangja",
+  "name": "geongangja",
   "private": true,
   "version": "1.0.0",
-  "description": "건광자 - 영양제 복용 관리 앱 (정적 사이트 + 푸시 알림용 서버리스 함수)",
+  "description": "건강자 - 영양제 복용 관리 앱 (정적 사이트 + 푸시 알림용 서버리스 함수)",
   "dependencies": {
     "web-push": "^3.6.7"
   }

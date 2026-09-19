@@ -371,28 +371,37 @@
         if (source) showNutrientInfo(source);
     }
 
-    // ---------- "오늘의 영양제" 빈 상태 마스코트: 홈에 들어갈 때마다 랜덤으로 하나 표시 ----------
-    // 아직 아무 영양제도 선택하지 않았을 때 보여주는 대기 화면 이미지.
-    // 접속 시간대별로 다른 3장 세트에서 무작위로 고름 (7-13시 / 13-17시 / 17-7시, 자정 넘어감).
+    // ---------- 홈 마스코트: 오늘 복용 체크한 영양제 개수에 따라 다른 이미지 세트에서 랜덤으로 표시 ----------
+    // 하나도 안 먹었을 때 7~9 / 1개 먹었을 때 4~6 / 2개 이상 먹었을 때 1~3
+    // (홈에 들어갈 때마다 같은 세트 안에서 무작위로 고르고, 체크 상태가 바뀌어 세트가 달라질 때만 다시 고름)
+    const MASCOT_IMAGES_BY_TAKEN = [
+        ["images/logo-waiting7.png", "images/logo-waiting8.png", "images/logo-waiting9.png"],
+        ["images/logo-waiting4.png", "images/logo-waiting5.png", "images/logo-waiting6.png"],
+        ["images/logo-waiting1.png", "images/logo-waiting2.png", "images/logo-waiting3.png"],
+    ];
+
+    // 정해진 시각 알림(푸시)에 쓰는 시간대별 3장 세트 (7-13시 / 13-17시 / 17-7시)
     const WAITING_IMAGE_GROUPS = [
         { start: 7, end: 13, files: ["images/logo-waiting1.png", "images/logo-waiting2.png", "images/logo-waiting3.png"] },
         { start: 13, end: 17, files: ["images/logo-waiting4.png", "images/logo-waiting5.png", "images/logo-waiting6.png"] },
         { start: 17, end: 7, files: ["images/logo-waiting7.png", "images/logo-waiting8.png", "images/logo-waiting9.png"] },
     ];
 
-    function getWaitingImagesForNow() {
-        const hour = new Date().getHours();
-        const group = WAITING_IMAGE_GROUPS.find((g) =>
-            g.start < g.end ? hour >= g.start && hour < g.end : hour >= g.start || hour < g.end
-        );
-        return group ? group.files : WAITING_IMAGE_GROUPS[0].files;
+    function pickMascot(force) {
+        const img = document.getElementById("waiting-mascot");
+        if (!img) return;
+        const taken = document.querySelectorAll(".today-item .today-check.checked").length;
+        const files = MASCOT_IMAGES_BY_TAKEN[Math.min(taken, MASCOT_IMAGES_BY_TAKEN.length - 1)];
+        if (!force && files.includes(img.getAttribute("src"))) return;
+        img.src = files[Math.floor(Math.random() * files.length)];
     }
 
     function showRandomWaitingMascot() {
-        const img = document.getElementById("waiting-mascot");
-        if (!img) return;
-        const files = getWaitingImagesForNow();
-        img.src = files[Math.floor(Math.random() * files.length)];
+        pickMascot(true);
+    }
+
+    function updateWaitingMascot() {
+        pickMascot(false);
     }
 
     // ---------- 정해진 시각에 "영양제를 복용하세요" 알림 ----------
@@ -449,8 +458,8 @@
     // 정해진 시각(11시/14시/새벽2시)에 팝업이 뜨게 함. /api/subscribe + /api/schedule-general-reminders
     // (QStash 예약) + /api/send-push가 필요하며, 서버 쪽 환경변수가 아직 없으면 조용히 실패함 ----------
     const VAPID_PUBLIC_KEY = "BGr5yf9BvFodVjxpiQ4K-VPq5FwDFx-q4MI6varkBT2gbXEiHrpe9Ewc2jBqhY_CNjP65OW3unp3f499V5B6niQ";
-    const PUSH_USER_ID_KEY = "gwangja_push_user_id";
-    const PUSH_SCHEDULED_KEY = "gwangja_general_push_scheduled_v1";
+    const PUSH_USER_ID_KEY = "geongangja_push_user_id";
+    const PUSH_SCHEDULED_KEY = "geongangja_general_push_scheduled_v1";
 
     function getOrCreatePushUserId() {
         let id = localStorage.getItem(PUSH_USER_ID_KEY);
@@ -513,7 +522,7 @@
     }
 
     // 처음 접속했을 때 딱 한 번만 팝업으로 알림 허용 여부를 물어봄(배너로 계속 떠있지 않게)
-    const PUSH_ASKED_KEY = "gwangja_push_asked_v1";
+    const PUSH_ASKED_KEY = "geongangja_push_asked_v1";
 
     function maybeShowPushPermissionModal() {
         if (localStorage.getItem(PUSH_ASKED_KEY)) return;
@@ -554,7 +563,7 @@
     // 처음 접속했을 때 한 번만 자동으로 시작되고, 이후에는 건강상태 탭의 "앱 사용 방법 다시 보기"로
     // 다시 볼 수 있음. 알림 허용 팝업과 겹치지 않도록, 자동으로 시작된 경우엔 투어가 끝난 뒤에
     // 그 팝업을 이어서 띄움
-    const ONBOARDING_DONE_KEY = "gwangja_tour_done_v1";
+    const ONBOARDING_DONE_KEY = "geongangja_tour_done_v1";
 
     // target이 없으면 화면 전체를 어둡게 하고 가운데에 말풍선만 보여줌(인사 단계).
     // target이 여러 개면(배열) 그 요소들을 모두 감싸는 하나의 영역을 강조함.
@@ -563,7 +572,7 @@
         {
             tab: "home",
             mascot: "images/logo-waiting1.png",
-            title: "건광자 사용법을 알려드릴게요",
+            title: "건강자 사용법을 알려드릴게요",
             desc: "실제 화면을 하나씩 짚어가며 설명해 드려요.<br>금방 끝나요!",
         },
         {
@@ -576,7 +585,7 @@
             tab: "home",
             target: ".today",
             title: "오늘의 영양제",
-            desc: "오늘 먹을 영양제가 여기에 모여요. 먹고 나면 <b>✓</b>를 눌러 기록하세요.<br>직접 추가한 항목은 꾹 눌러서 뺄 수 있어요.",
+            desc: "오늘 먹을 영양제가 여기에 모여요. 먹고 나면 <b>✓</b>를 눌러 기록하세요.<br>추가한 항목은 꾹 눌러서 뺄 수 있어요.",
         },
         {
             tab: "home",
@@ -626,7 +635,7 @@
             tab: "shop",
             target: ".store-header",
             title: "스토어",
-            desc: "다이소에서 파는 영양제를 둘러볼 수 있어요.<br>상품을 누르면 다이소몰로 연결돼요.",
+            desc: "다이소몰에서 판매 중인 영양제를 둘러볼 수 있어요.<br>상품을 누르면 다이소몰로 연결돼요.<br>다이소와 무관한 비공식 서비스예요.",
         },
     ];
 
@@ -1401,7 +1410,7 @@
     }
 
     // ---------- 내 영양제: localStorage에 저장/복원 ----------
-    const MEDICINES_STORAGE_KEY = "gwangja_medicines_v1";
+    const MEDICINES_STORAGE_KEY = "geongangja_medicines_v3";
 
     function saveMedicinesToStorage() {
         const tiles = Array.from(document.querySelectorAll(".medicine-tile"));
@@ -1440,6 +1449,7 @@
 
         if (!saved) {
             saveMedicinesToStorage();
+            updateMedicineCount();
             return;
         }
 
@@ -1491,6 +1501,7 @@
         });
 
         saveMedicinesToStorage();
+        updateMedicineCount();
     }
 
     function deleteMedicineTile(tile) {
@@ -1506,7 +1517,11 @@
         const panel = document.querySelector(".panel-medicines");
         if (!panel) return;
         const countEl = panel.querySelector(".section-title");
-        if (countEl) countEl.textContent = `내 영양제 (${panel.querySelectorAll(".medicine-tile").length})`;
+        const count = panel.querySelectorAll(".medicine-tile").length;
+        if (countEl) countEl.textContent = `내 영양제 (${count})`;
+        // 등록된 영양제가 하나도 없으면 안내 문구를 보여줌
+        const emptyEl = panel.querySelector(".medicine-empty");
+        if (emptyEl) emptyEl.hidden = count > 0;
     }
 
     // ---------- 내 영양제 타일 클릭 → 상세페이지(hims 스타일) ----------
@@ -1793,6 +1808,7 @@
             }
             saveTodayToStorage();
             saveMedicinesToStorage();
+            updateWaitingMascot();
         });
     }
 
@@ -1844,7 +1860,7 @@
     }
 
     // ---------- 오늘의 영양제: localStorage에 저장/복원 ----------
-    const TODAY_STORAGE_KEY = "gwangja_today_v1";
+    const TODAY_STORAGE_KEY = "geongangja_today_v1";
 
     function saveTodayToStorage() {
         const items = Array.from(document.querySelectorAll(".today-item")).map((item) => ({
@@ -1860,8 +1876,8 @@
         }
     }
 
-    // 페이지 로드 시 1회 호출: 고정 항목(탈모약/한약)은 체크 상태만 복원하고,
-    // 새로 추가했던 항목은 다시 만든 뒤 체크 상태를 복원함. 재고는 이미 영양제 타일에
+    // 페이지 로드 시 1회 호출: 추가했던 항목을 다시 만든 뒤 체크 상태를 복원함(예전 버전에서 저장된 고정 항목은
+    // 화면에 없으면 건너뜀). 재고는 이미 영양제 타일에
     // 저장돼 있으므로 다시 차감하지 않고, 영양소 그래프만 체크된 항목 기준으로 다시 채움
     function restoreTodayFromStorage() {
         let saved = null;
@@ -1974,6 +1990,7 @@
         if (remaining === 0 && imgBox) imgBox.style.visibility = "visible";
 
         saveTodayToStorage();
+        updateWaitingMascot();
     }
 
     function wireConditionButtons() {
@@ -2072,6 +2089,7 @@
         if (remaining === 0 && imgBox) imgBox.style.visibility = "visible";
 
         saveTodayToStorage();
+        updateWaitingMascot();
     }
 
     function exitDeleteMode(item) {
@@ -2178,91 +2196,18 @@
         overlay.querySelector("[data-close]").addEventListener("click", closeTodayPickerOverlay);
     }
 
-    // ---------- 스토어: 다이소몰 건강기능식품 카테고리에서 실제 판매 중(품절 제외)인
-    // 전 상품. 다이소몰 검색 API(SearchGoods)로 직접 조회해 이름/가격/평점/이미지를
-    // 그대로 가져옴 — HEALTH_FOOD_YN=Y, 품절 제외, 낱개 판매(박스 묶음 제외) 기준 ----------
+    // ---------- 스토어: 직접 만든 상품 카드 이미지(images/prodocts/)를 보여주고, 누르면 다이소몰의 해당
+    // 상품 페이지로 연결됨. nutrients는 카드 아래에 보여줄 들어 있는 영양소(이미지에 적힌 성분 기준) ----------
     const STORE_PRODUCTS = [
-        { pdNo: "994953528", name: "LG생활건강 이너뷰 콜라겐 더마스틱 7포", tag: "이너뷰티", price: 5000, rating: "4.7", reviews: "483", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250627/banner/300/9Cz26kBHEVc4QcQuToeY994953528_00_009Cz26kBHEVc4QcQuToeY.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=994953528" },
-        { pdNo: "600000144", name: "대웅제약 코엔자임 Q10 30캡슐 30일분", tag: "혈행/혈당/혈압", price: 5000, rating: "4.8", reviews: "6346", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/OqDM0kpIHoqFD3okk28W600000144_00_00OqDM0kpIHoqFD3okk28W.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000144" },
-        { pdNo: "987253276", name: "[우형재 PICK] 익스트림 모노크레아틴 플러스 120 g 40일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "598", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260422/banner/300/qm625V7JKEa8Iu7GrFAf987253276_00_01qm625V7JKEa8Iu7GrFAf.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=987253276" },
-        { pdNo: "600000128", name: "대웅제약 마그네슘 30정 30일분", tag: "기초건강", price: 3000, rating: "4.8", reviews: "6036", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/DZz3h5SxY2J2FqaEB9qZ600000128_00_00DZz3h5SxY2J2FqaEB9qZ.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000128" },
-        { pdNo: "600000131", name: "대웅제약 바나바잎 추출물 30정 30일분", tag: "혈행/혈당/혈압", price: 3000, rating: "4.8", reviews: "4589", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/rCiQaBH4VQ1rKKr7rz83600000131_00_00rCiQaBH4VQ1rKKr7rz83.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000131" },
-        { pdNo: "600000136", name: "대웅제약 녹차카테킨 30정 30일분", tag: "다이어트", price: 5000, rating: "4.8", reviews: "3524", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/5KgtE2Z5pfS6P1gIBIIh600000136_00_005KgtE2Z5pfS6P1gIBIIh.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000136" },
-        { pdNo: "944863413", name: "[다영 PICK] 셀트리온 다이어트 한 잔 슬림 S 프레소 10포 5일분", tag: "다이어트", price: 2000, rating: "4.7", reviews: "2491", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260605/banner/300/8ADhx4mYwiTujsVcCSTD944863413_00_018ADhx4mYwiTujsVcCSTD.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=944863413" },
-        { pdNo: "600000145", name: "대웅제약 rTG 오메가3 30캡슐 30일분", tag: "혈행/혈당/혈압", price: 5000, rating: "4.8", reviews: "6185", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/OHEcumxqCcJ047eosRhh600000145_00_00OHEcumxqCcJ047eosRhh.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000145" },
-        { pdNo: "600000148", name: "대웅제약 칼슘 마그네슘 비타민D 60정 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "3332", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/a7ohwSe3ShJimhwztOOK600000148_00_00a7ohwSe3ShJimhwztOOK.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000148" },
-        { pdNo: "600000132", name: "대웅제약 비타민D 4000IU 30정 30일분", tag: "기초건강", price: 3000, rating: "4.8", reviews: "2854", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/SvY5chCvz0QZIyP7AdTc600000132_00_00SvY5chCvz0QZIyP7AdTc.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000132" },
-        { pdNo: "600000135", name: "대웅제약 멀티비타민 미네랄 30정 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "3396", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/2ijoJLmHVT94XXIOZnda600000135_00_002ijoJLmHVT94XXIOZnda.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000135" },
-        { pdNo: "610910777", name: "동국제약 비타민D 2000IU 40캡슐 40일분", tag: "기초건강", price: 3000, rating: "4.9", reviews: "1085", image: "https://cdn.daisomall.co.kr/file/resize/PD/20251229/banner/300/5qFLremik89lsUa72Yqy610910777_00_005qFLremik89lsUa72Yqy.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=610910777" },
-        { pdNo: "032306284", name: "닥터블릿 푸응 7 Days 슬립앤버닝 14정 7일분", tag: "다이어트", price: 5000, rating: "4.8", reviews: "80", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260805/banner/300/e483TrUWUwCko9CBv1Da032306284_00_00e483TrUWUwCko9CBv1Da.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=032306284" },
-        { pdNo: "610910677", name: "동국제약 이너케어＆유산균 30캡슐", tag: "이너뷰티", price: 5000, rating: "4.8", reviews: "2671", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250829/banner/300/mBCVgsNacUdX2MZDROO3610910677_00_00mBCVgsNacUdX2MZDROO3.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=610910677" },
-        { pdNo: "913624075", name: "오브맘 다이어트 홀릭 30포 15일분", tag: "다이어트", price: 5000, rating: "4.7", reviews: "984", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250519/banner/300/2rLyPRrrXXN6XdvBMjj5913624075_00_002rLyPRrrXXN6XdvBMjj5.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=913624075" },
-        { pdNo: "994953535", name: "LG생활건강 이너뷰 다이어트 가르시니아 10포", tag: "다이어트", price: 5000, rating: "4.7", reviews: "958", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250627/banner/300/nv6m1SoKa2Zw57OA3JHL994953535_00_00nv6m1SoKa2Zw57OA3JHL.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=994953535" },
-        { pdNo: "600000127", name: "대웅제약 비타민C 30정 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "2595", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/V0qSVbLLgSaCWbYWEu73600000127_00_00V0qSVbLLgSaCWbYWEu73.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000127" },
-        { pdNo: "600000134", name: "대웅제약 밀크씨슬 30정 30일분", tag: "장/간건강", price: 5000, rating: "4.8", reviews: "3661", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/bzKNvkJzwy2KdAqrXtDQ600000134_00_00bzKNvkJzwy2KdAqrXtDQ.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000134" },
-        { pdNo: "613602085", name: "닥터블릿 푸응 7days 팻버닝 21캡슐", tag: "다이어트", price: 5000, rating: "4.7", reviews: "2620", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260624/banner/300/m6tznB24o1VYvw4vwVs3613602085_00_00m6tznB24o1VYvw4vwVs3.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602085" },
-        { pdNo: "591580521", name: "종근당건강 락토핏 골드", tag: "장/간건강", price: 5000, rating: "4.8", reviews: "1586", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260522/banner/300/0jgRGoNZEcwwrbTgrqVw591580521_00_000jgRGoNZEcwwrbTgrqVw.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=591580521" },
-        { pdNo: "600000133", name: "대웅제약 철분 30정 30일분", tag: "기초건강", price: 3000, rating: "4.8", reviews: "2312", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260820/banner/300/ahWGJ6KpupAlwxw7p3xm600000133_00_00ahWGJ6KpupAlwxw7p3xm.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000133" },
-        { pdNo: "901762097", name: "[홍삼매니아] 자연관 홍삼정 에너타임 10포 10일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "1064", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250807/banner/300/jJGIxkBNqg0FzVjNiyoV901762097_00_01jJGIxkBNqg0FzVjNiyoV.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=901762097" },
-        { pdNo: "600000126", name: "대웅제약 루테인 30정 30일분", tag: "눈건강", price: 3000, rating: "4.8", reviews: "3896", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/u8Kxfk5gV3uvRKBRNTM6600000126_00_00u8Kxfk5gV3uvRKBRNTM6.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000126" },
-        { pdNo: "613602130", name: "오브맘 비타민D＆아연 하루구미 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "1495", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250922/banner/300/dxtu28UFPhWKbi5IG3n8613602130_00_01dxtu28UFPhWKbi5IG3n8.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602130" },
-        { pdNo: "994953533", name: "LG생활건강 이너뷰 루테인 지아잔틴 30캡슐", tag: "눈건강", price: 5000, rating: "4.8", reviews: "724", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250627/banner/300/lXFnthJvrHdOJJvI4JC2994953533_00_00lXFnthJvrHdOJJvI4JC2.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=994953533" },
-        { pdNo: "600000203", name: "대웅제약 식물성 뉴티지 오메가3 30캡슐 30일분", tag: "혈행/혈당/혈압", price: 5000, rating: "4.8", reviews: "1512", image: "https://cdn.daisomall.co.kr/file/resize/PD/20251202/banner/300/7FdyxsWTlcbRJnDROGoC600000203_00_007FdyxsWTlcbRJnDROGoC.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000203" },
-        { pdNo: "994953531", name: "LG생활건강 이너뷰 히알루론산 더마스틱 12포", tag: "이너뷰티", price: 5000, rating: "4.8", reviews: "455", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250627/banner/300/9sKzBlRNgLc6DDH1QsJU994953531_00_009sKzBlRNgLc6DDH1QsJU.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=994953531" },
-        { pdNo: "600651655", name: "유한양행 운동부스터 생유산균 스틱 5포 5일분", tag: "장/간건강", price: 5000, rating: "5.0", reviews: "1098", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260325/banner/300/CxT93DcA0d824G3UBlAN600651655_00_00CxT93DcA0d824G3UBlAN.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600651655" },
-        { pdNo: "286314466", name: "닥터블릿 스트레스 케어 테아닌 30정 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "45", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260805/banner/300/2bO6NPfrJW4dB8O5FDEz286314466_00_002bO6NPfrJW4dB8O5FDEz.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=286314466" },
-        { pdNo: "610910678", name: "동국제약 혈당케어＆유산균 30캡슐", tag: "혈행/혈당/혈압", price: 5000, rating: "4.8", reviews: "1468", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250829/banner/300/y6DqUAmlgLsAXGUrvbmN610910678_00_00y6DqUAmlgLsAXGUrvbmN.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=610910678" },
-        { pdNo: "600000129", name: "대웅제약 비타민B 30정 30일분", tag: "기초건강", price: 3000, rating: "4.8", reviews: "2142", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/5QghHD5oyZssCfnGZbzA600000129_00_005QghHD5oyZssCfnGZbzA.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000129" },
-        { pdNo: "901762105", name: "[홍삼입문자] 자연관 6년근 홍삼정 에너타임 스탠다드 14포 14일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "180", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260612/banner/300/6YtHsleJV0YMOtFdtOAk901762105_00_016YtHsleJV0YMOtFdtOAk.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=901762105" },
-        { pdNo: "610910679", name: "동국제약 리포좀 비타민C 30정", tag: "기초건강", price: 5000, rating: "4.8", reviews: "1061", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250829/banner/300/3zNHA2Xp859SKsazXUwt610910679_00_003zNHA2Xp859SKsazXUwt.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=610910679" },
-        { pdNo: "600651651", name: "유한양행 프레쉬츄 생유산균 30정 30일분", tag: "장/간건강", price: 5000, rating: "4.7", reviews: "384", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260325/banner/300/Mz4AWbpywwVFSrdyow4Z600651651_00_00Mz4AWbpywwVFSrdyow4Z.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600651651" },
-        { pdNo: "286314174", name: "닥터블릿 푸응 7days 데일리버닝 14포 7일분", tag: "다이어트", price: 5000, rating: "4.6", reviews: "487", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260625/banner/300/KRdkveXe1tokHnITW5go286314174_00_00KRdkveXe1tokHnITW5go.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=286314174" },
-        { pdNo: "913624078", name: "오브맘 스트레스,쉼 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "572", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250519/banner/300/LCCefMiAcRv8JhM7m90p913624078_00_00LCCefMiAcRv8JhM7m90p.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=913624078" },
-        { pdNo: "032627142", name: "자연관 리프레쉬 마그네슘＆L-테아닌 4병 4일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "245", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260612/banner/300/IiBr1SI0rlUycwbkaeGq032627142_00_01IiBr1SI0rlUycwbkaeGq.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=032627142" },
-        { pdNo: "591581091", name: "[김우빈 PICK] 종근당건강 아임비타 비타민B 2000 30정 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "479", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260601/banner/300/30NEHOm4dIOnmUVwUKLJ591581091_00_0030NEHOm4dIOnmUVwUKLJ.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=591581091" },
-        { pdNo: "591581101", name: "[김우빈 PICK] 종근당건강 아임비타 멀티비타민 컴팩트 30정 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "721", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260601/banner/300/nkEyZw9TcKRMHbTvSy6D591581101_00_00nkEyZw9TcKRMHbTvSy6D.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=591581101" },
-        { pdNo: "600651652", name: "유한양행 초코맛 생유산균 스틱 20포 20일분", tag: "장/간건강", price: 5000, rating: "4.9", reviews: "438", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260325/banner/300/dj7lmBMZiAKAXlm5drGt600651652_00_00dj7lmBMZiAKAXlm5drGt.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600651652" },
-        { pdNo: "600000139", name: "대웅제약 쏘팔메토 옥타코사놀 30캡슐 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "2266", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/Am2C7Da2wracg1TigkAF600000139_00_00Am2C7Da2wracg1TigkAF.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000139" },
-        { pdNo: "968235549", name: "안국약품 브이팩 다이어트 유산균 올인원 멀티 비타민 7포", tag: "다이어트", price: 5000, rating: "4.7", reviews: "675", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250623/banner/300/kQh0cYBVEEUhZLYsuKrQ968235549_00_00kQh0cYBVEEUhZLYsuKrQ.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=968235549" },
-        { pdNo: "032627033", name: "자연관 스파이크컷 바나바잎＆카테킨 4병", tag: "다이어트", price: 5000, rating: "4.8", reviews: "337", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260819/banner/300/2NKz5YxykngJc58J5cja032627033_00_012NKz5YxykngJc58J5cja.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=032627033" },
-        { pdNo: "600000282", name: "대웅제약 녹차 카테킨 6정 6일분", tag: "다이어트", price: 1000, rating: "4.7", reviews: "621", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260504/banner/300/luK3Rb1JJDaCRTymvaHS600000282_00_01luK3Rb1JJDaCRTymvaHS.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000282" },
-        { pdNo: "613602128", name: "오브맘 멀티비타민＆미네랄 하루구미 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "1030", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250922/banner/300/8husYxWOSsou1qKUi5IE613602128_00_018husYxWOSsou1qKUi5IE.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602128" },
-        { pdNo: "913624074", name: "오브맘 비타민C 플러스 톡톡! 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "610", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250519/banner/300/jA6WTiVVoTzCt6OpBqnj913624074_00_00jA6WTiVVoTzCt6OpBqnj.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=913624074" },
-        { pdNo: "613602127", name: "오브맘 더채움 비오틴 하루구미 30일분", tag: "기초건강", price: 5000, rating: "4.9", reviews: "692", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250922/banner/300/mhxyGp5yOjC4MHfaY2J8613602127_00_01mhxyGp5yOjC4MHfaY2J8.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602127" },
-        { pdNo: "591581121", name: "종근당건강 관절연골엔 MSM 60정 30일분", tag: "기초건강", price: 5000, rating: "4.7", reviews: "425", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260424/banner/300/e7PvuolyW0jdoQAtpzxC591581121_00_01e7PvuolyW0jdoQAtpzxC.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=591581121" },
-        { pdNo: "601618642", name: "동화 바이마그랩 마그네슘 식이섬유 5포 5일분", tag: "기초건강", price: 3000, rating: "4.7", reviews: "474", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260406/banner/300/wJCESiflDyulw8oZ8pW1601618642_00_00wJCESiflDyulw8oZ8pW1.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=601618642" },
-        { pdNo: "600000142", name: "대웅제약 멀티비타민 미네랄 츄어블 60정 30일분", tag: "키즈", price: 5000, rating: "4.8", reviews: "593", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/CJUce0AJqtqHn7R3ZFm1600000142_00_00CJUce0AJqtqHn7R3ZFm1.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000142" },
-        { pdNo: "286314465", name: "닥터블릿 위 건강 스페인 감초추출물 14정 14일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "17", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260805/banner/300/SkTLQ0MeFl6Le3awtbuk286314465_00_00SkTLQ0MeFl6Le3awtbuk.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=286314465" },
-        { pdNo: "600000278", name: "대웅제약 바나바잎 10정 10일분", tag: "혈행/혈당/혈압", price: 1000, rating: "4.8", reviews: "654", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260504/banner/300/uooE7Z5tFnMjhhremBna600000278_00_01uooE7Z5tFnMjhhremBna.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000278" },
-        { pdNo: "913624077", name: "오브맘 기억력 그린라이트 30일분", tag: "혈행/혈당/혈압", price: 5000, rating: "4.7", reviews: "607", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250519/banner/300/l4wgtUT4J6F7QmnnIAOw913624077_00_00l4wgtUT4J6F7QmnnIAOw.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=913624077" },
-        { pdNo: "613602129", name: "오브맘 면역＆프로폴리스 하루구미 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "1096", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250922/banner/300/XgyvZV5zt5ig9XLyfDOS613602129_00_01XgyvZV5zt5ig9XLyfDOS.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602129" },
-        { pdNo: "601618643", name: "동화 바이마그랩 마그네슘B 30정 30일분", tag: "기초건강", price: 3000, rating: "4.8", reviews: "555", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260406/banner/300/yaxFSMtpTnhrztKNOjGw601618643_00_00yaxFSMtpTnhrztKNOjGw.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=601618643" },
-        { pdNo: "591580761", name: "종근당건강 락토핏 당케어", tag: "혈행/혈당/혈압", price: 5000, rating: "4.8", reviews: "763", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250610/banner/300/qUVshiLfS5KUSiQ9T3cu591580761_00_05qUVshiLfS5KUSiQ9T3cu.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=591580761" },
-        { pdNo: "613602126", name: "오브맘 눈건강 루테인 하루구미 30일분", tag: "눈건강", price: 5000, rating: "4.8", reviews: "1289", image: "https://cdn.daisomall.co.kr/file/resize/PD/20251015/banner/300/CucIwXdPFflEtkJEtXZl613602126_00_01CucIwXdPFflEtkJEtXZl.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602126" },
-        { pdNo: "968235548", name: "안국약품 브이팩 여성용 올인원 멀티 비타민 7포", tag: "기초건강", price: 5000, rating: "4.8", reviews: "330", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260402/banner/300/05kyKLN3QpKvymmVHajT968235548_00_0005kyKLN3QpKvymmVHajT.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=968235548" },
-        { pdNo: "611982830", name: "안국약품 토비콤 루테인 지아잔틴 24캡슐", tag: "눈건강", price: 5000, rating: "4.8", reviews: "1035", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250623/banner/300/xCRETYTkHbPblUcjT18I611982830_00_00xCRETYTkHbPblUcjT18I.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=611982830" },
-        { pdNo: "033574091", name: "LG생활건강 이너뷰 혈당 감소 츄어블 28정 28일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "109", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260723/banner/300/c2TZVCaqecHNLV5z01Uh033574091_00_01c2TZVCaqecHNLV5z01Uh.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=033574091" },
-        { pdNo: "610910727", name: "동국제약 리포좀 마그마 스피드 30정", tag: "기초건강", price: 5000, rating: "4.7", reviews: "367", image: "https://cdn.daisomall.co.kr/file/resize/PD/20251111/banner/300/69fT92p91uLANMODpyck610910727_00_0069fT92p91uLANMODpyck.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=610910727" },
-        { pdNo: "600000143", name: "대웅제약 어린이 칼슘 마그네슘D 츄어블 60정 30일분", tag: "키즈", price: 5000, rating: "4.7", reviews: "500", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250408/banner/300/mx3ripII7mLHu95jzlBA600000143_00_00mx3ripII7mLHu95jzlBA.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000143" },
-        { pdNo: "600000197", name: "대웅제약 밀크씨슬 에너지샷 5포", tag: "장/간건강", price: 5000, rating: "4.8", reviews: "406", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250813/banner/300/V9qCJdlaEC8Ugb1xrzDE600000197_00_00V9qCJdlaEC8Ugb1xrzDE.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000197" },
-        { pdNo: "600000279", name: "대웅제약 코엔자임Q10 6캡슐 6일분", tag: "혈행/혈당/혈압", price: 1000, rating: "4.8", reviews: "318", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260504/banner/300/OqWOmDxWU1qoZh2gUZfq600000279_00_01OqWOmDxWU1qoZh2gUZfq.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000279" },
-        { pdNo: "611982831", name: "안국약품 토비콤 루테인 지아잔틴 미니 30캡슐", tag: "눈건강", price: 5000, rating: "4.8", reviews: "1412", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250623/banner/300/lX1R9GhsEUzz72XUg7VZ611982831_00_00lX1R9GhsEUzz72XUg7VZ.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=611982831" },
-        { pdNo: "600000150", name: "대웅제약 프로폴리스 츄어블 30정 30일분", tag: "기초건강", price: 5000, rating: "4.7", reviews: "706", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250409/banner/300/Kpov6WvmW02F4pW9qB4z600000150_00_00Kpov6WvmW02F4pW9qB4z.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000150" },
-        { pdNo: "913624076", name: "오브맘 눈건강 아이라이트 30일분", tag: "눈건강", price: 5000, rating: "4.8", reviews: "307", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250519/banner/300/zf0uM3McjshpycTXP0T2913624076_00_00zf0uM3McjshpycTXP0T2.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=913624076" },
-        { pdNo: "613602132", name: "오브맘 활력에너지B 하루구미 30일분", tag: "기초건강", price: 5000, rating: "4.8", reviews: "718", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250922/banner/300/FWBWePRv27KbgtvBHof6613602132_00_01FWBWePRv27KbgtvBHof6.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602132" },
-        { pdNo: "600000269", name: "대웅제약 rTG오메가3 6캡슐 6일분", tag: "혈행/혈당/혈압", price: 1000, rating: "4.8", reviews: "477", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260504/banner/300/LdyaPluhRl2HSeYjB2pX600000269_00_01LdyaPluhRl2HSeYjB2pX.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000269" },
-        { pdNo: "968235547", name: "안국약품 브이팩 남성용 올인원 멀티 비타민 7포", tag: "기초건강", price: 5000, rating: "4.8", reviews: "453", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250623/banner/300/jgM8z9lj7cP7W5etxeXM968235547_00_00jgM8z9lj7cP7W5etxeXM.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=968235547" },
-        { pdNo: "951817117", name: "락피도 티니핑 면역스틱 12포 12일분", tag: "키즈", price: 5000, rating: "4.9", reviews: "624", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260226/banner/300/IXAU5YWeB9Z3g8kwCzhg951817117_00_01IXAU5YWeB9Z3g8kwCzhg.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=951817117" },
-        { pdNo: "951817119", name: "락피도 티니핑 비타스틱 12포 12일분", tag: "키즈", price: 5000, rating: "4.9", reviews: "447", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260226/banner/300/yrj6yZmrzRmjLCVxjDAB951817119_00_01yrj6yZmrzRmjLCVxjDAB.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=951817119" },
-        { pdNo: "951817120", name: "락피도 티니핑 철분스틱 12포 12일분", tag: "키즈", price: 5000, rating: "4.8", reviews: "588", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260226/banner/300/Lb8S1LqMvpkz0uUPx4SJ951817120_00_01Lb8S1LqMvpkz0uUPx4SJ.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=951817120" },
-        { pdNo: "913624079", name: "오브맘 피부건강＆면역 톡톡! 15일분", tag: "이너뷰티", price: 5000, rating: "4.8", reviews: "360", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250519/banner/300/0xJzkuIzlrFNcHO0q4lJ913624079_00_000xJzkuIzlrFNcHO0q4lJ.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=913624079" },
-        { pdNo: "600000281", name: "대웅제약 비타민D 4000IU 10정 10일분", tag: "기초건강", price: 1000, rating: "4.8", reviews: "273", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260504/banner/300/H44oDYbaAQPekxvnTd9T600000281_00_01H44oDYbaAQPekxvnTd9T.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000281" },
-        { pdNo: "611982832", name: "안국약품 토비콤 눈피로엔 아이포커스 미니 20캡슐", tag: "눈건강", price: 5000, rating: "4.8", reviews: "209", image: "https://cdn.daisomall.co.kr/file/resize/PD/20250623/banner/300/eUpKnXlsDmWUTHaFdSd5611982832_00_00eUpKnXlsDmWUTHaFdSd5.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=611982832" },
-        { pdNo: "286314178", name: "올비텐 멀티비타민 츄어블 30정", tag: "키즈", price: 3000, rating: "4.7", reviews: "176", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260310/banner/300/41yPP4FFDsaIkDV2FbEM286314178_00_0141yPP4FFDsaIkDV2FbEM.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=286314178" },
-        { pdNo: "600000280", name: "대웅제약 밀크씨슬 6정 6일분", tag: "장/간건강", price: 1000, rating: "4.8", reviews: "256", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260504/banner/300/1DUhwiP05cMCEONDxu7B600000280_00_011DUhwiP05cMCEONDxu7B.png", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000280" },
-        { pdNo: "951817118", name: "락피도 티니핑 칼슘스틱 12포 12일분", tag: "키즈", price: 5000, rating: "4.7", reviews: "326", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260226/banner/300/jfFr3tgA4ryuIvnhGsc5951817118_00_01jfFr3tgA4ryuIvnhGsc5.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=951817118" },
-        { pdNo: "034345002", name: "올비텐 유산균 30포", tag: "키즈", price: 5000, rating: "4.9", reviews: "131", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260310/banner/300/T4loWDiI8pGLQV9NaP56034345002_00_09T4loWDiI8pGLQV9NaP56.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=034345002" },
-        { pdNo: "939986472", name: "올비텐 비타팡팡 30포", tag: "키즈", price: 5000, rating: "4.9", reviews: "104", image: "https://cdn.daisomall.co.kr/file/resize/PD/20260310/banner/300/G3FoDs3n7cYqsOkiYbDR939986472_00_01G3FoDs3n7cYqsOkiYbDR.jpg", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=939986472" },
+        { name: "대웅제약 코엔자임 Q10 30캡슐 30일분", tag: "혈행/혈당/혈압", image: "images/prodocts/Q10.png", nutrients: "코엔자임Q10 (최대 100mg)", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000144" },
+        { name: "대웅제약 바나바잎 추출물 30정 30일분", tag: "혈행/혈당/혈압", image: "images/prodocts/banana.png", nutrients: "바나바잎 추출물 (코로솔산 1.3mg)", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000131" },
+        { name: "오브맘 다이어트 홀릭 30포 15일분", tag: "다이어트", image: "images/prodocts/diet.png", nutrients: "가르시니아캄보지아추출물, 판토텐산, 비타민B1", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=913624075" },
+        { name: "대웅제약 녹차카테킨 30정 30일분", tag: "다이어트", image: "images/prodocts/green%20tea.png", nutrients: "녹차 카테킨", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000136" },
+        { name: "오브맘 눈건강 루테인 하루구미 30일분", tag: "눈건강", image: "images/prodocts/eyes.png", nutrients: "루테인", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=613602126" },
+        { name: "LG생활건강 이너뷰 콜라겐 더마스틱 7포", tag: "이너뷰티", image: "images/prodocts/inner%20beautiy.png", nutrients: "저분자콜라겐펩타이드 GT", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=994953528" },
+        { name: "대웅제약 어린이 칼슘 마그네슘D 츄어블 60정 30일분", tag: "키즈", image: "images/prodocts/kids.png", nutrients: "칼슘, 비타민D, 마그네슘", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=600000143" },
+        { name: "종근당건강 락토핏 골드", tag: "장/간건강", image: "images/prodocts/lacktofit.png", nutrients: "프로바이오틱스(유산균)", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=591580521" },
+        { name: "동국제약 비타민D 2000IU 40캡슐 40일분", tag: "기초건강", image: "images/prodocts/vitamenD3.png", nutrients: "비타민D3 2000IU", url: "https://www.daisomall.co.kr/pd/pdr/SCR_PDR_0001?pdNo=610910777" },
     ];
 
     const STORE_PAGE_SIZE = 9;
@@ -2273,7 +2218,7 @@
         if (!grid) return;
         const kw = (keyword || "").trim().toLowerCase();
         const filtered = STORE_PRODUCTS.filter(
-            (p) => (activeTag === "전체" || p.tag === activeTag) && p.name.toLowerCase().includes(kw)
+            (p) => (activeTag === "전체" || p.tag === activeTag) && (p.name + " " + p.nutrients).toLowerCase().includes(kw)
         );
 
         const totalPages = Math.max(1, Math.ceil(filtered.length / STORE_PAGE_SIZE));
@@ -2285,10 +2230,9 @@
             items
                 .map(
                     (p) => `
-            <a class="store-card" href="${p.url}" target="_blank" rel="noopener noreferrer">
-                <span class="store-card-img"><img src="${p.image}" alt="" loading="lazy"></span>
-                <span class="store-card-name">${escapeHtml(p.name)}</span>
-                <span class="store-card-price">${p.price.toLocaleString()}원</span>
+            <a class="store-card" href="${p.url}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(p.name)} (다이소몰에서 보기)">
+                <span class="store-card-img"><img src="${p.image}" alt="${escapeHtml(p.name)}" loading="lazy"></span>
+                <span class="store-card-nutrients">${escapeHtml(p.nutrients)}</span>
             </a>`
                 )
                 .join("") || `<div class="store-empty">검색 결과가 없어요</div>`;
@@ -2398,6 +2342,7 @@
 
         document.querySelectorAll(".today-check").forEach(wireTodayCheck);
         restoreTodayFromStorage();
+        updateWaitingMascot();
         refreshNutritionAnalysis();
 
         checkReminders();

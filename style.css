@@ -251,44 +251,32 @@ body {
     background: var(--card);
     border-radius: 14px;
     overflow: hidden;
-    padding-bottom: 18px;
     color: inherit;
     text-decoration: none;
 }
+/* 카드 이미지는 정사각형 틀에 꽉 채워 보여줌(세로로 긴 이미지는 제목이 있는 위쪽 부분 위주로) */
 .store-card-img {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     aspect-ratio: 1 / 1;
-    margin-bottom: 6px;
 }
 .store-card-img img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center 35%;
 }
-.store-card-name {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    padding: 8px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text);
-    line-height: 1.4;
-    min-height: 62px;
-    margin-bottom: 4px;
-}
-.store-card-price {
+.store-card-nutrients {
     display: block;
-    padding: 0 10px;
-    font-size: 12px;
-    font-weight: 800;
-    color: var(--primary-dark);
-    text-align: right;
+    min-height: 70px;
+    padding: 9px 8px 11px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text);
+    word-break: keep-all;
 }
+
 .store-empty {
     grid-column: 1 / -1;
     text-align: center;
@@ -1019,6 +1007,17 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     margin-bottom: 10px;
+}
+
+.medicine-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 60px 0;
+}
+.medicine-empty[hidden] {
+    display: none;
 }
 
 .medicine-tile {

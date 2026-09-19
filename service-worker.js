@@ -1,10 +1,10 @@
-// 건광자 서비스 워커: 오프라인에서도 앱 껍데기(HTML/CSS/JS)가 뜨도록 캐싱하고,
+// 건강자 서비스 워커: 오프라인에서도 앱 껍데기(HTML/CSS/JS)가 뜨도록 캐싱하고,
 // 서버(/api/send-push)가 보낸 푸시 알림을 받아 화면에 띄우는 역할도 함.
 //
 // 캐시 우선 전략을 쓰면 배포를 새로 해도 예전 버전이 계속 보이는 문제가 있어서
 // (실제로 겪은 버그), 네트워크를 먼저 시도하고 오프라인일 때만 캐시를 씀.
 // CACHE_NAME을 올릴 때마다 이전 캐시는 자동으로 지워짐.
-const CACHE_NAME = "geongwangja-v2";
+const CACHE_NAME = "geongangja-v2";
 const CORE_ASSETS = ["/", "/index.html", "/style.css", "/header.js", "/manifest.json"];
 
 self.addEventListener("install", (event) => {

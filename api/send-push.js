@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
             image: `${origin}/images/${file}`,
         };
 
-        webpush.setVapidDetails("mailto:geongwangja@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        webpush.setVapidDetails("mailto:geongangja@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
         await webpush.sendNotification(subscription, JSON.stringify(payload));
 
         res.status(200).json({ ok: true });

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>건광자</title>
+    <title>건강자</title>
     <link rel="icon" type="image/png" href="images/app-icon.png">
     <link rel="apple-touch-icon" href="images/app-icon.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#025124">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="건광자">
+    <meta name="apple-mobile-web-app-title" content="건강자">
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css" />
     <link rel="stylesheet" href="style.css">
 </head>
@@ -24,7 +24,7 @@
         <input type="radio" name="menu" id="menu-shop" class="menu-radio">
 
         <header class="header">
-            <span class="logo"><img src="images/logo.png" alt="광자" class="mascot">건광자</span>
+            <span class="logo"><img src="images/logo.png" alt="부기" class="mascot">건강자</span>
             <div class="calendar-card">
                     <div class="calendar-week">
                         <span class="calendar-day">일</span>
@@ -75,25 +75,10 @@
                 <div class="home-scroll">
                     <div class="today">
                         <h2 class="title">오늘의 영양제</h2>
-                        <div class="today-list">
-                            <div class="today-item">
-                                <span class="today-item-name">탈모약</span>
-                                <div class="today-check-group">
-                                    <span class="today-check-time"></span>
-                                    <button type="button" class="today-check" aria-label="복용 체크">✓</button>
-                                </div>
-                            </div>
-                            <div class="today-item">
-                                <span class="today-item-name">한약</span>
-                                <div class="today-check-group">
-                                    <span class="today-check-time"></span>
-                                    <button type="button" class="today-check" aria-label="복용 체크">✓</button>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="today-list"></div>
                     </div>
                     <div class="imgBox">
-                        <img id="waiting-mascot" src="images/logo-waiting1.png" alt="">
+                        <img id="waiting-mascot" src="images/logo-waiting7.png" alt="">
                     </div>
                     <div class="tryBox-wrap">
                         <div class="tryBox">
@@ -172,6 +157,7 @@
                         <div class="medicine-tile-label">멀티비타민</div>
                     </div>
                 </div>
+                <div class="medicine-empty" id="medicine-empty" hidden>등록된 영양제가 없어요.<br>가운데 ＋ 버튼으로 영양제를 등록해 보세요.</div>
             </section>
 
             <!-- ===================== 영양분석 ===================== -->
@@ -288,13 +274,13 @@
             <!-- ===================== 스토어 ===================== -->
             <section class="panel panel-shop">
                 <div class="store-header">
-                    <div class="store-title">영양제 스토어(다이소)</div>
+                    <div class="store-title">다이소몰에서 찾아보기</div>
                     <input type="text" id="store-search" class="store-search" placeholder="영양제 검색">
                 </div>
                 <div class="store-tabs" id="store-tabs"></div>
                 <div class="store-grid" id="store-grid"></div>
                 <div class="store-pager" id="store-pager"></div>
-                <p class="disclaimer">* 실제 판매처(다이소몰)로 연결되며, 구매·배송·재고는 판매처 정책을 따릅니다.</p>
+                <p class="disclaimer">* 본 앱은 다이소와 제휴·후원 관계가 없는 비공식 서비스입니다. 가격·평점 등 상품 정보는 실제와 다를 수 있으며, 정확한 정보와 구매·배송·재고는 판매처(다이소몰)의 정책을 따릅니다.</p>
             </section>
         </main>
 
