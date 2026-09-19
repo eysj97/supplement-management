@@ -5,8 +5,19 @@
 const webpush = require("web-push");
 const { redisGet } = require("./_lib");
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+// 환경변수에 값을 붙여넣을 때 공백/줄바꿈/따옴표/"이름=" 접두사/끝의 "="가 섞여 들어가기 쉬워서,
+// web-push가 요구하는 URL-safe Base64 형태로 정리해서 씀
+function cleanKey(name, raw) {
+    return String(raw || "")
+        .replace(/\s+/g, "")
+        .replace(/^["']+|["']+$/g, "")
+        .replace(new RegExp("^" + name + "="), "")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+}
+const VAPID_PUBLIC_KEY = cleanKey("VAPID_PUBLIC_KEY", process.env.VAPID_PUBLIC_KEY);
+const VAPID_PRIVATE_KEY = cleanKey("VAPID_PRIVATE_KEY", process.env.VAPID_PRIVATE_KEY);
 
 const WAITING_IMAGE_GROUPS = [
     ["logo-waiting1.png", "logo-waiting2.png", "logo-waiting3.png"],
@@ -50,7 +61,12 @@ module.exports = async (req, res) => {
             image: `${origin}/images/${file}`,
         };
 
-        webpush.setVapidDetails("mailto:geongangja@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        try {
+            webpush.setVapidDetails("mailto:geongangja@example.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        } catch (e) {
+            // 공개키는 87자, 개인키는 43자여야 함(값 자체는 노출하지 않고 길이만 알려줌)
+            throw new Error(String(e.message) + " [공개키 " + VAPID_PUBLIC_KEY.length + "자 / 개인키 " + VAPID_PRIVATE_KEY.length + "자, 각각 87자 / 43자여야 해요]");
+        }
         await webpush.sendNotification(subscription, JSON.stringify(payload));
 
         res.status(200).json({ ok: true });
