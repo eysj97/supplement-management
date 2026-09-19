@@ -457,7 +457,7 @@
     // ---------- 서버 푸시 알림: 앱이 완전히 꺼져 있어도, 잠금화면이나 다른 앱을 쓰는 중에도
     // 정해진 시각(11시/14시/새벽2시)에 팝업이 뜨게 함. /api/subscribe + /api/schedule-general-reminders
     // (QStash 예약) + /api/send-push가 필요하며, 서버 쪽 환경변수가 아직 없으면 조용히 실패함 ----------
-    const VAPID_PUBLIC_KEY = "BGr5yf9BvFodVjxpiQ4K-VPq5FwDFx-q4MI6varkBT2gbXEiHrpe9Ewc2jBqhY_CNjP65OW3unp3f499V5B6niQ";
+    const VAPID_PUBLIC_KEY = "BAgdgYIaumwswYV92cBWCkR4hM7zTYvLbojqCdD0l96fEddgDbzHvtHstW5ZW4KezW3zpx-ToAvAYs5N723xRkU";
     const PUSH_USER_ID_KEY = "geongangja_push_user_id";
     const PUSH_SCHEDULED_KEY = "geongangja_general_push_scheduled_v1";
 
